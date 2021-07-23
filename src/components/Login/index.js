@@ -1,14 +1,25 @@
 import React from 'react';
 import { Row, Col, Button, Typography } from 'antd';
-import firebase,{ auth } from '../../firebase/config';
+import firebase,{ auth, db } from '../../firebase/config';
 import { useHistory } from 'react-router-dom'
+import { addDocument, generateKeywords } from '../../firebase/services';
 
 const { Title } = Typography;
 const fbProvider=new firebase.auth.FacebookAuthProvider();
 function Login() {
 
-    const handleFbLogin=()=>{
-        auth.signInWithPopup(fbProvider);
+    const handleFbLogin= async ()=>{
+        const { additionalUserInfo, user}=  await auth.signInWithPopup(fbProvider);
+        if (additionalUserInfo?.isNewUser) {
+            addDocument('users', {
+              displayName: user.displayName,
+              email: user.email,
+              photoURL: user.photoURL,
+              uid: user.uid,
+              providerId: additionalUserInfo.providerId,
+              keywords: generateKeywords(user.displayName?.toLowerCase()),
+            });
+          }
     }
 
     return (
@@ -18,7 +29,6 @@ function Login() {
                     <Title style={{textAlign:'center'}} level={3}>FUN CHAT</Title>
                     <Button style={{width:'100%',marginBottom:5}} onClick={handleFbLogin}>Đăng nhập với FaceBook</Button>
                     <Button style={{width:'100%'}}>Đăng nhập với Google</Button>
-
                 </Col>
             </Row>
         </div>

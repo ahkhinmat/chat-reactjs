@@ -22,13 +22,22 @@ const WrapperStyled = styled.div`
 `;
 
 export default function Message({text, displayName, createAt, photoURL}) {
+          const formateDate=(seconds)=>{
+                    let formattedDate='';
+                    if(seconds){
+                      formattedDate=formatRelative(new Date(seconds*1000), new Date());
+                      formattedDate=formattedDate.charAt(0).toUpperCase()+ formattedDate.slice(1);
+                  
+                    }
+                    return formattedDate;
+                  }
           return (
                     <WrapperStyled>
                               <div>
                                         <div>
-                                                  <Avatar type='small' src={photoURL}>A</Avatar>
+                                                  <Avatar type='small' src={photoURL}>{photoURL? '' : displayName?.charAt(0)?.toUpperCase()}</Avatar>
                                                   <Typography.Text className='author'>{displayName}</Typography.Text>
-                                                  <Typography.Text className="date">{createAt}</Typography.Text>
+                                                  <Typography.Text className="date">{formateDate(createAt?.seconds)}</Typography.Text>
                                         </div>
                                         <div>
                                                   <Typography.Text className="content">{text}</Typography.Text>

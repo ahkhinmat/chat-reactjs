@@ -1,8 +1,13 @@
 import { UserAddOutlined } from '@ant-design/icons';
-import { Button, Tooltip, Avatar, Form, Input } from 'antd';
-import React from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
+import { Button, Tooltip, Avatar, Form, Input, Alert } from 'antd';
 import Message from './Message';
+import AppProvider, { AppContext } from '../../Context/AppProvider';
+import { addDocument } from '../../firebase/services';
+import { AuthContext } from '../../Context/AuthProvider';
+import useFirestore from '../../hooks/useFirestore';
+import { formatRelative } from 'date-fns';
 
 const HeaderStyled =styled.div ` 
 display: flex;
@@ -61,53 +66,95 @@ border-radius:2px;
 
 `;
 export default function ChatWindow() {
+ const {  selectedRoom,members,setIsInviteMemberVisible } = useContext(AppContext);
+const { user: {
+  uid,photoURL,displayName
+}}=useContext(AuthContext);
+ const [form]=Form.useForm();
+ const [ inputValue, setInputValue]=useState('');
+
+const handleInputChange = (e) =>{
+  setInputValue(e.target.value);
+};
+const handleOnSubmit = () =>{
+
+  addDocument('message',{
+    text: inputValue,
+    uid,
+    photoURL,
+    roomId: selectedRoom.id,
+    displayName
+  });
+  form.resetFields(['message']);
+}
+const conditon=React.useMemo(() => ({
+fieldName: 'roomId',
+operator:'==',
+compareValue: selectedRoom.id
+}), [selectedRoom.id]);
+
+const messages=useFirestore('message',conditon);
+
+console.log({messages});
           return (
                     <WrapperStyled>
-                              <HeaderStyled>
+                        {
+                          selectedRoom.id  ? (<>
+                            <HeaderStyled>
                                         <div className="header__infor">
-                                                  <p className="header__title">Room 1</p>
-                                                  <span className="header__description">Mô tả đây là room 1</span>
+                                                  <p className="header__title">{selectedRoom.name}</p>
+                                                  <span className="header__description">{selectedRoom.description}</span>
                                         </div>
                                                   <ButtonGroupStyled>
                                                             <Button    icon={<UserAddOutlined />}
                                                                              type='text'
+                                                                             onClick={() => setIsInviteMemberVisible(true)
+                                                                             }
                                                             >Mời</Button>
                                                             <Avatar.Group size='small' maxCount={2}>
-                                                                      <Tooltip title="A">
-                                                                                <Avatar >A</Avatar>
-                                                                      </Tooltip>
-                                                                      <Tooltip title="B">
-                                                                                <Avatar >B</Avatar>
-                                                                      </Tooltip>
-                                                                      <Tooltip title="C">
-                                                                                <Avatar >C</Avatar>
-                                                                      </Tooltip>
-                                                                      <Tooltip title="C">
-                                                                                <Avatar >C</Avatar>
-                                                                      </Tooltip>
+                                                            {members.map((member) =>(
+                                                              <Tooltip title={member.displayName} key={member.id}>
+                                                                <Avatar  src={member.photoURL}>
+                                                                {member.photoURL
+                                                                 ? '' : 
+                                                                 member.displayName?.charAt(0)?.toUpperCase()}
+                                                                </Avatar>
+                                                              </Tooltip>
+                                                            ))}
+                       
                                                             </Avatar.Group>
                                                   </ButtonGroupStyled>
                               </HeaderStyled>
                               <ContentStyled>
                                         <MessageListStyle>
-                                                  <Message text="Test" photoURL={null} displayName="Kha" createAt="2143241242134" />
-                                                  <Message text="Test" photoURL={null} displayName="Kha" createAt="2143241242134" />
-                                                  <Message text="Test" photoURL={null} displayName="Kha" createAt="2143241242134" />
-                                                  <Message text="Test" photoURL={null} displayName="Kha" createAt="2143241242134" />
+                                                                  {
+                                                                    messages.map( mes=> <Message key={mes.id}
+                                                                    text={mes.text} photoURL={mes.photoURL} displayName={mes.displayName} 
+                                                                    createAt={(mes.createAt)}
+                                                                    />)
+                                                                  }
+                                        
                                  
                                                 
                                         </MessageListStyle>
-                                                  <FormStyle>
-                                                            <Form.Item>
-                                                                      <Input placeholder='nhập tin nhắn' bordered={false} autoComplete='off' />
+                                                  <FormStyle form={form}>
+                                                            <Form.Item  name="message">
+                                                                      <Input 
+                                                                      onChange={handleInputChange}
+                                                                      onPressEnter={ handleOnSubmit}
+                                                                      placeholder='nhập tin nhắn' bordered={false} autoComplete='off'
+                                                                       />
                                                             </Form.Item>
                                                   </FormStyle>
-                                                  <Button type='primary'>
+                                                  <Button type='primary' onClick={handleOnSubmit}>
                                                             Gởi
                                                   </Button>
                                     
                               </ContentStyled>
                           
+                          </>) : <Alert type="info" message="hãy chọn 1 phòng"  showIcon  style={{margin :5}}/>
+                        }
+                             
                     </WrapperStyled>
           )
 }
